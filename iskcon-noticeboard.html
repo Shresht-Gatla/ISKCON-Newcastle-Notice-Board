@@ -131,7 +131,7 @@ body::before { content:''; position:fixed; inset:0; pointer-events:none;
 <div id="progress"></div>
 
 <div id="ticker">
-  <div id="ticker-label">🪷 Latest</div>
+  <div id="ticker-label">🪷 ISKCON News</div>
   <div id="ticker-track"><div id="ticker-inner"></div></div>
 </div>
 
@@ -237,6 +237,18 @@ timer = setTimeout(()=>goTo(1), firstDur);
 // Ticker
 async function buildTicker() {
   let items = [...tickerItems];
+
+  // ISKCON Desire Tree RSS feed (Atom format)
+  try {
+    const r = await fetch('https://api.rss2json.com/v1/api.json?rss_url=https://iskcondesiretree.com/profiles/blogs/feed/all');
+    if (r.ok) {
+      const d = await r.json();
+      if (d.items && d.items.length) {
+        const idt = d.items.slice(0, 10).map(i => '🪷 IDT: ' + i.title);
+        items = [...items, ...idt];
+      }
+    }
+  } catch(e) {}
 
 
   const track = document.getElementById('ticker-track');
