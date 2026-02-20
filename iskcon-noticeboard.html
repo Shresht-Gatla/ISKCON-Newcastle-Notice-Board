@@ -104,7 +104,7 @@ body::before { content:''; position:fixed; inset:0; pointer-events:none;
   color:var(--cream); font-family:'Cinzel',serif; font-size:11px; font-weight:600;
   letter-spacing:2px; text-transform:uppercase; height:100%; display:flex; align-items:center; white-space:nowrap; }
 #ticker-track { flex:1; overflow:hidden; }
-#ticker-inner { display:flex; white-space:nowrap; animation:tick 60s linear infinite; }
+#ticker-inner { display:flex; white-space:nowrap; }
 #ticker-inner span { display:inline-flex; align-items:center; font-size:14px;
   color:rgba(255,248,231,0.85); padding:0 44px; }
 #ticker-inner span::before { content:'❋'; color:var(--gold); margin-right:16px; font-size:11px; }
@@ -242,34 +242,45 @@ async function buildTicker() {
     if(r.ok){const d=await r.json(); if(d.items) items=[...items,...d.items.slice(0,8).map(i=>'📰 BBC: '+i.title)];}
   } catch(e){}
 
+  const track = document.getElementById('ticker-track');
   const inner = document.getElementById('ticker-inner');
 
-  // Build ONE set first to measure real pixel width
+  // Build full item list (no duplication needed — we loop via JS)
   inner.innerHTML = items.map(t=>`<span>${t}</span>`).join('');
-  inner.style.animation = 'none';
 
-  // Wait a frame so browser renders and we can measure
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      const singleWidth = inner.scrollWidth;
+  // Wait two frames so browser has rendered spans and we can measure widths
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
-      // Now duplicate for seamless loop
-      inner.innerHTML = [...items, ...items].map(t=>`<span>${t}</span>`).join('');
+  // Measure each span's width and store with its text
+  const spans = [...inner.querySelectorAll('span')];
+  const totalWidth = spans.reduce((sum, s) => sum + s.offsetWidth, 0);
 
-      // Speed: 120px per second — consistent regardless of number/length of items
-      const pxPerSec = 250;
-      const duration = singleWidth / pxPerSec;
+  // Speed in px/sec — increase this number to go faster
+  const PX_PER_SEC = 200;
 
-      // Apply animation via a fresh stylesheet rule so it restarts cleanly
-      inner.style.animation = '';
-      inner.style.animationName = 'tick';
-      inner.style.animationDuration = duration + 's';
-      inner.style.animationTimingFunction = 'linear';
-      inner.style.animationIterationCount = 'infinite';
-      // translateX target is exactly -50% since content is doubled
-      inner.style.animationPlayState = 'running';
-    });
-  });
+  // Build a much longer strip (repeat items enough to fill at least 3x screen)
+  const screenW = track.offsetWidth || window.innerWidth;
+  const repeats = Math.ceil((screenW * 3) / totalWidth) + 2;
+  const allItems = [];
+  for (let i = 0; i < repeats; i++) allItems.push(...items);
+  inner.innerHTML = allItems.map(t=>`<span>${t}</span>`).join('');
+
+  // RAF-based scroll — moves inner left, resets seamlessly when first copy scrolled past
+  let pos = 0;
+  let last = null;
+
+  function tick(ts) {
+    if (last !== null) {
+      const delta = ts - last;
+      pos += (PX_PER_SEC * delta) / 1000;
+      // Reset when we've scrolled one full totalWidth (= one copy of all items)
+      if (pos >= totalWidth) pos -= totalWidth;
+      inner.style.transform = `translateX(${-pos}px)`;
+    }
+    last = ts;
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
 }
 buildTicker();
 </script>
