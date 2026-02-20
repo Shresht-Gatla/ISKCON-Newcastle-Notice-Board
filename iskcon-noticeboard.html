@@ -257,7 +257,7 @@ async function buildTicker() {
       inner.innerHTML = [...items, ...items].map(t=>`<span>${t}</span>`).join('');
 
       // Speed: 120px per second — consistent regardless of number/length of items
-      const pxPerSec = 180;
+      const pxPerSec = 250;
       const duration = singleWidth / pxPerSec;
 
       // Apply animation via a fresh stylesheet rule so it restarts cleanly
