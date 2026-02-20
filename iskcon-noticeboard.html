@@ -241,10 +241,35 @@ async function buildTicker() {
     const r = await fetch('https://api.rss2json.com/v1/api.json?rss_url=https://feeds.bbci.co.uk/news/rss.xml');
     if(r.ok){const d=await r.json(); if(d.items) items=[...items,...d.items.slice(0,8).map(i=>'📰 BBC: '+i.title)];}
   } catch(e){}
-  const inner=document.getElementById('ticker-inner');
-  const all=[...items,...items];
-  inner.innerHTML=all.map(t=>`<span>${t}</span>`).join('');
-  inner.style.animationDuration=(items.length*9)+'s';
+
+  const inner = document.getElementById('ticker-inner');
+
+  // Build ONE set first to measure real pixel width
+  inner.innerHTML = items.map(t=>`<span>${t}</span>`).join('');
+  inner.style.animation = 'none';
+
+  // Wait a frame so browser renders and we can measure
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const singleWidth = inner.scrollWidth;
+
+      // Now duplicate for seamless loop
+      inner.innerHTML = [...items, ...items].map(t=>`<span>${t}</span>`).join('');
+
+      // Speed: 120px per second — consistent regardless of number/length of items
+      const pxPerSec = 120;
+      const duration = singleWidth / pxPerSec;
+
+      // Apply animation via a fresh stylesheet rule so it restarts cleanly
+      inner.style.animation = '';
+      inner.style.animationName = 'tick';
+      inner.style.animationDuration = duration + 's';
+      inner.style.animationTimingFunction = 'linear';
+      inner.style.animationIterationCount = 'infinite';
+      // translateX target is exactly -50% since content is doubled
+      inner.style.animationPlayState = 'running';
+    });
+  });
 }
 buildTicker();
 </script>
