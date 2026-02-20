@@ -237,10 +237,7 @@ timer = setTimeout(()=>goTo(1), firstDur);
 // Ticker
 async function buildTicker() {
   let items = [...tickerItems];
-  try {
-    const r = await fetch('https://api.rss2json.com/v1/api.json?rss_url=https://feeds.bbci.co.uk/news/rss.xml');
-    if(r.ok){const d=await r.json(); if(d.items) items=[...items,...d.items.slice(0,8).map(i=>'📰 BBC: '+i.title)];}
-  } catch(e){}
+
 
   const track = document.getElementById('ticker-track');
   const inner = document.getElementById('ticker-inner');
@@ -256,7 +253,7 @@ async function buildTicker() {
   const totalWidth = spans.reduce((sum, s) => sum + s.offsetWidth, 0);
 
   // Speed in px/sec — increase this number to go faster
-  const PX_PER_SEC = 200;
+  const PX_PER_SEC = 150;
 
   // Build a much longer strip (repeat items enough to fill at least 3x screen)
   const screenW = track.offsetWidth || window.innerWidth;
